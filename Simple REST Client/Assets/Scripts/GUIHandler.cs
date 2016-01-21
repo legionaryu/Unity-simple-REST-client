@@ -1,46 +1,52 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
+using System.Collections;
 
 public class GUIHandler : MonoBehaviour {
     public GameObject baseKeyValueObj;
-    public GameObject paramsScrollViewContent;
+    public GameObject baseLblOutput;
+    public InputField urlInput;
+    public Dropdown methodInput;
+    public RectTransform paramsScrollViewContent;
+    public RectTransform resultScrollViewContent;
 
-    private static List<GameObject> allKeyValueObjs = new List<GameObject>();
+    private const float keyValueObjMargin = 5;
+    private const float lblOutputMargin = 5;
+    private const int maxCharsPerText = 1600;
 
-    public void Start()
+    public void Send()
     {
-        foreach(Transform child in paramsScrollViewContent.transform)
+        StartCoroutine(SendCoroutine());
+    }
+    
+    private IEnumerator SendCoroutine()
+    {
+        WWW request = new WWW(urlInput.text);
+        yield return request;
+        if (string.IsNullOrEmpty(request.error))
         {
-            GameObject.Destroy(child.gameObject);
+            AddOutput(request.text);
         }
+        else
+        {
+            AddOutput(request.error);
+        }
+    }
+
+    public void AddPair()
+    {
         var keyValueObj = GameObject.Instantiate<GameObject>(baseKeyValueObj);
-        keyValueObj.transform.parent = paramsScrollViewContent.transform;
-        allKeyValueObjs.Add(keyValueObj);
-        keyValueObj.transform.localPosition = baseKeyValueObj.transform.position;
-        var allInputFields = keyValueObj.GetComponentsInChildren<InputField>();
-        foreach(var field in allInputFields)
+        keyValueObj.transform.SetParent(paramsScrollViewContent.transform, false);
+    }
+
+    private void AddOutput(string text)
+    {
+        for(var i = 0; i < text.Length / maxCharsPerText; i++)
         {
-            if(field.name.ToLower().Contains("key"))
-            {
-                var fieldKey = field;
-                field.onEndEdit.AddListener(delegate { OnEndEditKey(fieldKey); });
-            }
-            else if (field.name.ToLower().Contains("value"))
-            {
-                var fieldValue = field;
-                field.onEndEdit.AddListener(delegate { OnEndEditValue(fieldValue); });
-            }
+            var LblOutputObj = GameObject.Instantiate<GameObject>(baseLblOutput);
+            LblOutputObj.GetComponent<Text>().text = text.Substring(i * maxCharsPerText, Mathf.Min((i+1) * maxCharsPerText, text.Length));
+            LblOutputObj.transform.SetParent(resultScrollViewContent.transform, false);
         }
     }
 
-    public void OnEndEditKey(InputField field)
-    {
-        Debug.Log("OnEndEditKey", field);
-    }
-
-    public void OnEndEditValue(InputField field)
-    {
-        Debug.Log("OnEndEditValue", field);
-    }
 }
